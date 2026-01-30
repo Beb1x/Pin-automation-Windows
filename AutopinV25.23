@@ -1,0 +1,94 @@
+import time
+import xml.etree.ElementTree as ET
+import win32api
+import win32con
+import win32gui
+import logging
+import os
+
+#good version, versiune ok
+WINDOW_TITLE = "Windows Security"
+xml_path = r"C:\path\to.config"
+log_path = os.path.join(os.getenv("TEMP"), "AutoPinMiti.log")
+
+logging.basicConfig(
+    filename=log_path,
+    level=logging.CRITICAL,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+#################EXAMPLE XML##########################
+#<setting name="PIN" serializeAs="String">           #
+#    <value>0987654321</value>                       #
+#</setting>                                          #
+######################################################
+#or config, depends how you name it really
+#i should do something like a param also
+############my use case#################################################
+#but for my legacy pharma software works flawlessy######################
+#im not a dev, just a fellow l2, that its JUST TIRED####################
+#of asking for HELP and getting telled "iTs NoT pOSsiBLE"###############
+#like GTFO & STFU + ratio + your mom > earth = earth stop spinning######
+# forgor ###############################################################
+###############my name is alex btw######################################
+
+def get_pin_from_xml(xml_file_path):
+    try:
+        tree = ET.parse(xml_file_path)
+        root = tree.getroot()
+        pin = root.find(".//setting[@name='PIN']/value").text
+        return pin
+    except Exception as e:
+        logging.critical(f"Nu pot citi PIN: {str(e)} | Vezi format XML la {xml_file_path}")
+        return None
+
+def send_pin_to_window(pin, hwnd):
+    try:
+        if not win32gui.IsWindow(hwnd):
+            return
+
+        for char in pin:
+            win32api.PostMessage(hwnd, win32con.WM_CHAR, ord(char), 0)
+            time.sleep(0.05)
+
+        win32api.PostMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN, 0)
+        win32api.PostMessage(hwnd, win32con.WM_KEYUP, win32con.VK_RETURN, 0)
+
+    except Exception as e:
+        logging.critical(f"Error nu pot scrie PIN la fereasctra: {str(e)}")
+
+def find_window_by_title(title):
+    hwnd = win32gui.FindWindow(None, title)
+    return hwnd
+
+def check_window_status(window_title):
+    hwnd = find_window_by_title(window_title)
+    return "Success" if not hwnd else True
+#IF IF IF IF IF IF IF While true, my beloved
+def main():
+    while True:
+        try:
+            hwnd = find_window_by_title(WINDOW_TITLE)
+            if hwnd:
+                pin = get_pin_from_xml(xml_path)
+                if pin:
+                    time.sleep(2)
+                    send_pin_to_window(pin, hwnd)
+                    time.sleep(2)
+                    result = check_window_status(WINDOW_TITLE)
+                    if result == "Success":
+                        pass 
+                    else:
+                        pass  
+                else:
+                    logging.critical(f"Nu am reusit sa citesc pin ul , vezi formatul la: {xml_path}. sa existe macar.")
+                    time.sleep(15)
+                    break
+            else:
+                time.sleep(3)
+        except Exception as e:
+            logging.critical(f"Eroare ne asteptata in loop anuntal pe Gorre tot respectul: {str(e)}")
+            time.sleep(100)
+
+if _name_ == "_main_":
+    main()
